@@ -10,9 +10,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"os/exec"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -226,32 +224,9 @@ func handleResult(data RunData, uri string) (didSendRequest bool) {
 	markAsSeen(uri, matched)
 	if matched {
 		slog.Info("new match", "url", uri)
-		go openURL(uri)
 	} else {
 		slog.Debug("skipping non-match", "url", uri)
 	}
 
 	return true
-}
-
-func openURL(url string) {
-	slog.Debug("Attempting to open url in browser", "url", url)
-	var cmd *exec.Cmd
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
-	case "darwin":
-		cmd = exec.Command("open", url)
-	case "linux":
-		cmd = exec.Command("xdg-open", url)
-	default:
-	}
-
-	if cmd == nil {
-		return
-	}
-
-	if err := cmd.Run(); err != nil {
-		slog.Error("failed to open url in default browser", "url", url, "err", err)
-	}
 }

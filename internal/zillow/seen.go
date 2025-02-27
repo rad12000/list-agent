@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/spf13/cobra"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 )
 
@@ -49,7 +50,7 @@ func listenSeen() {
 		case v := <-writeMatchCh:
 			m[v] = true
 			_, err = persistence.WriteString(fmt.Sprintf("%s true\n", v))
-			cobra.CheckErr(exec.Command("open", "-a", "Google Chrome", v).Run())
+			openURL(v)
 		case tuple := <-readSeenCh:
 			_, ok := m[tuple.Second]
 			tuple.First <- ok
@@ -58,6 +59,28 @@ func listenSeen() {
 		if err != nil {
 			panic(err)
 		}
+	}
+}
+
+func openURL(url string) {
+	slog.Debug("Attempting to open url in browser", "url", url)
+	var cmd *exec.Cmd
+	switch runtime.GOOS {
+	case "windows":
+		cmd = exec.Command("rundll32", "url.dll,FileProtocolHandler", url)
+	case "darwin":
+		cmd = exec.Command("open", url)
+	case "linux":
+		cmd = exec.Command("xdg-open", url)
+	default:
+	}
+
+	if cmd == nil {
+		return
+	}
+
+	if err := cmd.Run(); err != nil {
+		slog.Error("failed to open url in default browser", "url", url, "err", err)
 	}
 }
 
