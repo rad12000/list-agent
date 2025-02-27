@@ -23,7 +23,7 @@ var rootCmd = &cobra.Command{
 		case "debug":
 			level = slog.LevelDebug
 		case "info":
-			level = slog.LevelDebug
+			level = slog.LevelInfo
 		case "warn":
 			level = slog.LevelWarn
 		case "error":
@@ -31,7 +31,8 @@ var rootCmd = &cobra.Command{
 		default:
 			level = slog.LevelInfo
 		}
-		
+
+		fmt.Println("using log level", level)
 		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			AddSource:   false,
 			Level:       level,

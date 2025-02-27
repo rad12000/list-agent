@@ -235,6 +235,7 @@ func handleResult(data RunData, uri string) (didSendRequest bool) {
 }
 
 func openURL(url string) {
+	slog.Debug("Attempting to open url in browser", "url", url)
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
