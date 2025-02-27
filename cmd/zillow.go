@@ -14,6 +14,7 @@ import (
 var (
 	zillowStorageFile string
 	zillowSearchTerms []string
+	zillowUserAgent   string
 
 	zillowBounds zillow.Bounds
 	zillowFilter = zillow.FilterState{
@@ -34,6 +35,7 @@ var (
 				MapBounds:   zillowBounds,
 				FilterState: zillowFilter,
 				SearchTerms: zillowSearchTerms,
+				UserAgent:   zillowUserAgent,
 			})
 		},
 	}
@@ -71,6 +73,7 @@ func init() {
 	flags.BoolVar(&zillowFilter.IsManufactured.Value, "manufactured", false, "whether to include manufactured homes in the search results")
 	flags.BoolVar(&zillowFilter.IsLotLand.Value, "lot", false, "whether to include land lots in the search results")
 
+	flags.StringVar(&zillowUserAgent, "user-agent", `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36`, "The user agent to use when sending requests to zillow.")
 	flags.StringSliceVarP(&zillowSearchTerms, "search", "q", nil, "Search terms to include in the search query. Raw regex patterns are supported. Each term will be joined with the the other with the regex OR (|) operator.")
 }
 

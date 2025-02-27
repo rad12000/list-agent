@@ -14,6 +14,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -41,6 +42,7 @@ type RunData struct {
 	FilePath    string
 	MapBounds   Bounds
 	FilterState FilterState
+	UserAgent   string
 }
 
 func parseSearchTerms(terms []string) {
@@ -82,7 +84,7 @@ func Run(data RunData) {
 		if err != nil {
 			panic(err)
 		}
-		req.Header = getHeaders()
+		req.Header = getHeaders(data)
 
 		slog.Info("sending new page state request")
 		res, err := http.DefaultClient.Do(req)
@@ -111,9 +113,15 @@ func Run(data RunData) {
 		cookieJar.SetCookies(req.URL, res.Cookies())
 
 		slog.Info("handling results", "resultCount", len(resp.Cat1.SearchResults.ListResults))
+		var wg sync.WaitGroup
 		for _, result := range resp.Cat1.SearchResults.ListResults {
-			handleResult(result.DetailUrl)
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				handleResult(data, result.DetailUrl)
+			}()
 		}
+		wg.Wait()
 
 		if resp.Cat1.SearchList.Pagination.NextUrl != "" {
 			page++
@@ -132,7 +140,7 @@ func Run(data RunData) {
 
 					fmt.Println("pinging")
 					req := Must(http.NewRequest(http.MethodGet, uri, nil))
-					req.Header = getHeaders()
+					req.Header = getHeaders(data)
 					res, err := http.DefaultClient.Do(req)
 					if err != nil {
 						slog.Error("failed to ping", "uri", uri, "err", err)
@@ -152,14 +160,14 @@ func Run(data RunData) {
 		}
 
 		slog.Info("waiting a minute for next page", "page", page)
-		//<-time.NewTimer(time.Minute * 3).C
+		<-time.NewTimer(time.Minute * 1).C
 	}
 }
 
-func getHeaders() map[string][]string {
+func getHeaders(data RunData) map[string][]string {
 	m := map[string]string{
 		"Content-Type":    "application/json",
-		"User-Agent":      `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36`,
+		"User-Agent":      data.UserAgent,
 		"Accept":          "*/*",
 		"Accept-Encoding": "gzip",
 		"Cache-Control":   "no-cache",
@@ -173,7 +181,7 @@ func getHeaders() map[string][]string {
 	return out
 }
 
-func handleResult(uri string) {
+func handleResult(data RunData, uri string) (didSendRequest bool) {
 	if hasBeenSeen(uri) {
 		slog.Info("skipping seen url", "uri", uri)
 		return
@@ -186,7 +194,7 @@ func handleResult(uri string) {
 	}
 
 	req := Must(http.NewRequest(http.MethodGet, uri, nil))
-	req.Header = getHeaders()
+	req.Header = getHeaders(data)
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		slog.Error("failed to handle result", "uri", uri, "err", err)
@@ -214,16 +222,16 @@ func handleResult(uri string) {
 		slog.Error("failed to parse result response", "uri", uri, "err", err)
 	}
 
-	//regex := regexp.MustCompile(`(?i)(\sADU|basement\s+apartment|\smother\sin(|\s|-)law|\swalk(\s|-)out|\sseparate\sentrance)`)
-
 	matched := searchRegex.Match(b)
 	markAsSeen(uri, matched)
 	if matched {
 		slog.Info("new match", "url", uri)
 		go openURL(uri)
+	} else {
+		slog.Info("skipping non-match", "url", uri)
 	}
 
-	time.Sleep(time.Second * 1)
+	return true
 }
 
 func openURL(url string) {
