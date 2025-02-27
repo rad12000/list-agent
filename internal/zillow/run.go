@@ -86,7 +86,7 @@ func Run(data RunData) {
 		}
 		req.Header = getHeaders(data)
 
-		slog.Info("sending new page state request")
+		slog.Debug("sending new page state request")
 		res, err := http.DefaultClient.Do(req)
 		if err != nil {
 			panic(err)
@@ -112,7 +112,7 @@ func Run(data RunData) {
 		_ = reader.Close()
 		cookieJar.SetCookies(req.URL, res.Cookies())
 
-		slog.Info("handling results", "resultCount", len(resp.Cat1.SearchResults.ListResults))
+		slog.Debug("handling results", "resultCount", len(resp.Cat1.SearchResults.ListResults))
 		var wg sync.WaitGroup
 		for _, result := range resp.Cat1.SearchResults.ListResults {
 			wg.Add(1)
@@ -183,7 +183,7 @@ func getHeaders(data RunData) map[string][]string {
 
 func handleResult(data RunData, uri string) (didSendRequest bool) {
 	if hasBeenSeen(uri) {
-		slog.Info("skipping seen url", "uri", uri)
+		slog.Debug("skipping seen url", "uri", uri)
 		return
 	}
 
@@ -228,7 +228,7 @@ func handleResult(data RunData, uri string) (didSendRequest bool) {
 		slog.Info("new match", "url", uri)
 		go openURL(uri)
 	} else {
-		slog.Info("skipping non-match", "url", uri)
+		slog.Debug("skipping non-match", "url", uri)
 	}
 
 	return true

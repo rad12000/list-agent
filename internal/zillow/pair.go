@@ -1,6 +1,6 @@
 package zillow
 
-type Pair[T, U any] struct {
+type pair[T, U any] struct {
 	First  T
 	Second U
 }

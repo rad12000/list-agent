@@ -14,7 +14,7 @@ import (
 var (
 	writeIgnoreCh = make(chan string)
 	writeMatchCh  = make(chan string)
-	readSeenCh    = make(chan Pair[chan bool, string])
+	readSeenCh    = make(chan pair[chan bool, string])
 	persistence   *os.File
 )
 
@@ -71,6 +71,6 @@ func markAsSeen(uri string, matched bool) {
 
 func hasBeenSeen(uri string) bool {
 	ch := make(chan bool)
-	readSeenCh <- Pair[chan bool, string]{ch, uri}
+	readSeenCh <- pair[chan bool, string]{ch, uri}
 	return <-ch
 }
