@@ -42,8 +42,6 @@ var (
 )
 
 func init() {
-	rootCmd.AddCommand(zillowCmd)
-
 	flags := zillowCmd.Flags()
 
 	flags.StringVar(&zillowStorageFile, "file", filepath.Join(config.Directory(), "zillow-results"), "File to store visited zillow listings in")
