@@ -15,7 +15,7 @@ https://rad12000.github.io/list-agent.
 The listagent CLI is made up of subcommands, each with their own unique arguments.
 In general, usage will look like the following:
 ```bash
-snap [subcommand] <subcommand args>
+listagent [subcommand] <subcommand args>
 ```
 
 ## Setting up completions
