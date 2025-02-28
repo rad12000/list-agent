@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/rad12000/list-agent/cmd/upgrade"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -55,7 +56,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	ListAgentCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "The minimum log level. Default so info. Valid values are: debug, info, warn, and error.")
-	ListAgentCmd.AddCommand(zillowCmd, versionCmd)
+	ListAgentCmd.AddCommand(zillowCmd, versionCmd, upgrade.Command)
 }
 
 // initConfig reads in config file and ENV variables if set.

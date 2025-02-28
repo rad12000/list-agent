@@ -11,6 +11,6 @@ var versionCmd = &cobra.Command{
 	Short: "manage and view the current cli version",
 	Long:  "manage and view the current cli version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(version.Version())
+		fmt.Printf("Current: %s\nLatest: %s\n", version.Version(), version.Latest())
 	},
 }
