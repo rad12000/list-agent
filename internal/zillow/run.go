@@ -138,7 +138,7 @@ func Run(data RunData) {
 					default:
 					}
 
-					fmt.Println("pinging")
+					slog.Debug("pinging")
 					req := Must(http.NewRequest(http.MethodGet, uri, nil))
 					req.Header = getHeaders(data)
 					res, err := http.DefaultClient.Do(req)
