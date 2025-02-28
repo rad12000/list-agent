@@ -55,8 +55,8 @@ func init() {
 	flags.Var(NewPtrToValue(&runData.FilterState.HOA.Min, PtrToIntValuer()), "min-hoa", "the minimum hoa of a listing")
 	flags.Var(NewPtrToValue(&runData.FilterState.HOA.Max, PtrToIntValuer()), "max-hoa", "the maximum hoa of a listing")
 
-	flags.Var(NewPtrToValueDefault(&runData.DurationBetweenRuns, IntToDurationValuer(time.Minute), 60), "run-interval", "The amount of time, in minutes, to wait between each execution.")
-	flags.Var(NewPtrToValueDefault(&runData.DurationBetweenPages, IntToDurationValuer(time.Second), 30), "page-interval", "The amount of time, in seconds, to wait between each page during each execution.")
+	flags.Var(NewPtrToValue(&runData.DurationBetweenRuns, newIntToDurationValuer(durationUnitMinute, 60)), "run-interval", "The amount of time, in minutes, to wait between each execution.")
+	flags.Var(NewPtrToValue(&runData.DurationBetweenPages, newIntToDurationValuer(durationUnitSecond, 30)), "page-interval", "The amount of time, in seconds, to wait between each page during each execution.")
 
 	flags.BoolVar(&runData.FilterState.IsSingleFamily.Value, "single-family", false, "whether to include single family homes in the search results")
 	flags.BoolVar(&runData.FilterState.IsApartment.Value, "apartment", false, "whether to include apartments in the search results")
@@ -67,25 +67,6 @@ func init() {
 
 	flags.StringVar(&runData.UserAgent, "user-agent", `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36`, "The user agent to use when sending requests to zillow.")
 	flags.StringSliceVarP(&runData.SearchTerms, "search", "q", nil, "Search terms to include in the search query. Raw regex patterns are supported. Each term will be joined with the the other with the regex OR (|) operator.")
-}
-
-func IntToDurationValuer(unit time.Duration) Valuer[time.Duration] {
-	return ValuerFunc[time.Duration](func(v string) (time.Duration, error) {
-		if v == "" {
-			return 0 * unit, nil
-		}
-
-		factor, err := strconv.Atoi(v)
-		if err != nil {
-			return 0, err
-		}
-
-		if factor < 0 {
-			return 0, fmt.Errorf("invalid value provided: %v. Must not be less than 0", factor)
-		}
-
-		return time.Duration(factor) * unit, nil
-	})
 }
 
 func PtrToIntValuer() Valuer[*int] {
@@ -107,6 +88,70 @@ type Valuer[T any] interface {
 	Value(v string) (T, error)
 }
 
+type Defaulter[T any] interface {
+	Default() (T, bool)
+}
+
+func newDurationUnit(duration time.Duration, name string) durationUnit {
+	return durationUnit{
+		duration: duration,
+		name:     name,
+	}
+}
+
+type durationUnit struct {
+	duration time.Duration
+	name     string
+}
+
+func (d durationUnit) Unit() time.Duration {
+	return d.duration
+}
+
+func (d durationUnit) String() string {
+	return d.name
+}
+
+var (
+	durationUnitSecond = newDurationUnit(time.Second, "second")
+	durationUnitMinute = newDurationUnit(time.Minute, "minute")
+	durationUnitHour   = newDurationUnit(time.Hour, "hour")
+)
+
+func newIntToDurationValuer(durationUnit durationUnit, defaultValue time.Duration) Valuer[time.Duration] {
+	return intToDurationValuer{defaultValue: defaultValue * durationUnit.duration, unit: durationUnit}
+}
+
+type intToDurationValuer struct {
+	defaultValue time.Duration
+	unit         durationUnit
+}
+
+func (i intToDurationValuer) Default() (time.Duration, bool) {
+	return i.defaultValue, true
+}
+
+func (i intToDurationValuer) Type() string {
+	return i.unit.String()
+}
+
+func (i intToDurationValuer) Value(v string) (time.Duration, error) {
+	if v == "" {
+		return 0 * i.unit.Unit(), nil
+	}
+
+	factor, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, err
+	}
+
+	if factor < 0 {
+		return 0, fmt.Errorf("invalid value provided: %v. Must not be less than 0", factor)
+	}
+
+	return time.Duration(factor) * i.unit.Unit(), nil
+}
+
 type ValuerFunc[T any] func(v string) (T, error)
 
 func (v ValuerFunc[T]) Type() string {
@@ -119,13 +164,13 @@ func (v ValuerFunc[T]) Value(val string) (T, error) {
 }
 
 func NewPtrToValue[T any](valuePtr *T, valuer Valuer[T]) *PtrToValue[T] {
-	return &PtrToValue[T]{
-		ValuePtr: valuePtr,
-		Valuer:   valuer,
+	if defaulter, ok := valuer.(Defaulter[T]); ok {
+		val, hasDefault := defaulter.Default()
+		if hasDefault {
+			*valuePtr = val
+		}
 	}
-}
-func NewPtrToValueDefault[T any](valuePtr *T, valuer Valuer[T], defaultValue T) *PtrToValue[T] {
-	*valuePtr = defaultValue
+
 	return &PtrToValue[T]{
 		ValuePtr: valuePtr,
 		Valuer:   valuer,
