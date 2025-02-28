@@ -43,3 +43,9 @@ release: package-windows-amd64 package-windows-arm64 package-darwin-amd64 packag
 build-local:
 	go build -o $(shell which listagent) main.go
 .PHONY: build-local
+
+generate-docs:
+	mkdir -p ./docs
+	rm -f ./docs/*.md
+	go run -tags docs ./... --dir ./docs
+.PHONY: generate-docs
