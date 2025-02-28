@@ -36,11 +36,13 @@ var (
 )
 
 type RunData struct {
-	SearchTerms []string
-	FilePath    string
-	MapBounds   Bounds
-	FilterState FilterState
-	UserAgent   string
+	DurationBetweenRuns  time.Duration
+	DurationBetweenPages time.Duration
+	SearchTerms          []string
+	FilePath             string
+	MapBounds            Bounds
+	FilterState          FilterState
+	UserAgent            string
 }
 
 func parseSearchTerms(terms []string) {
@@ -125,7 +127,7 @@ func Run(data RunData) {
 			page++
 		} else {
 			page = 0
-			slog.Info("waiting three hours")
+			slog.Info("waiting to start next run", "minutes", data.DurationBetweenRuns.Minutes())
 			doneCh := make(chan struct{})
 			go func(uri string) {
 				for {
@@ -153,12 +155,12 @@ func Run(data RunData) {
 					<-time.NewTimer(time.Minute * 3).C
 				}
 			}(resp.Cat1.SearchResults.ListResults[len(resp.Cat1.SearchResults.ListResults)-1].DetailUrl)
-			<-time.NewTimer(time.Hour * 3).C
+			time.Sleep(data.DurationBetweenRuns)
 			continue
 		}
 
-		slog.Info("waiting a minute for next page", "page", page)
-		<-time.NewTimer(time.Minute * 1).C
+		slog.Info("waiting to read next page", "seconds", data.DurationBetweenPages.Seconds())
+		time.Sleep(data.DurationBetweenPages)
 	}
 }
 
