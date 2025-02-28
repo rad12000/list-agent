@@ -33,7 +33,6 @@ var ListAgentCmd = &cobra.Command{
 			level = slog.LevelInfo
 		}
 
-		fmt.Println("using log level", level)
 		slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 			AddSource:   false,
 			Level:       level,
